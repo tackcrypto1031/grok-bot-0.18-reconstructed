@@ -13,6 +13,10 @@ export function normalizeArchivePath(value) {
   return value.replace(/^[/\\]+/, "").replaceAll("\\", "/");
 }
 
+export function archiveLookupPath(value, separator = path.sep) {
+  return normalizeArchivePath(value).replaceAll("/", separator);
+}
+
 async function walkFiles(root, current = root) {
   const found = [];
   for (const entry of await readdir(current, { withFileTypes: true })) {
@@ -55,9 +59,9 @@ async function archiveFileEntries(archivePath) {
   for (const raw of listPackage(archivePath)) {
     const relative = normalizeArchivePath(raw);
     try {
-      // @electron/asar returns host-native separators from listPackage(). Keep
-      // that spelling for statFile(), but compare using portable POSIX paths.
-      const entry = statFile(archivePath, raw);
+      // listPackage() prefixes entries with a root separator, but statFile()
+      // expects a relative path using the host separator.
+      const entry = statFile(archivePath, archiveLookupPath(raw));
       if (typeof entry.size === "number") entries.set(relative, entry);
     } catch {
       // listPackage includes directories; statFile is the file boundary.

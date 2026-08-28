@@ -29,6 +29,11 @@ test("publication ignore rules retain reconstructed frontend source", async () =
   assert.equal(matcher.ignores("recovered/generated-output.txt"), true, "root recovery output must remain ignored");
 });
 
+test("repository checks hydrate the pinned Git LFS archives", async () => {
+  const workflow = await readFile(path.join(repoRoot, ".github", "workflows", "check.yml"), "utf8");
+  assert.match(workflow, /uses: actions\/checkout@v4\n\s+with:\n\s+lfs: true/);
+});
+
 test("default packaging keeps the polished checksum-pinned renderer", async () => {
   const source = await readFile(path.join(repoRoot, "scripts", "package-macos.mjs"), "utf8");
   assert.match(source, /import \{ buildFidelityReconstructedAsar \} from "\.\/clean-build\.mjs"/);

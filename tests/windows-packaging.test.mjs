@@ -3,12 +3,13 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { normalizeArchivePath } from "../scripts/lib/asar-integrity.mjs";
+import { archiveLookupPath, normalizeArchivePath } from "../scripts/lib/asar-integrity.mjs";
 import { reconstructedUpdaterGuard } from "../scripts/lib/build-asar.mjs";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = relative => readFile(path.join(repoRoot, relative), "utf8");
 test("ASAR integrity paths normalize Windows separators", () => {
   assert.equal(normalizeArchivePath("\\node_modules\\ws\\index.js"), "node_modules/ws/index.js");
+  assert.equal(archiveLookupPath("\\node_modules\\ws\\index.js", "\\"), "node_modules\\ws\\index.js");
   assert.equal(normalizeArchivePath("/dist/native/tree-sitter.node"), "dist/native/tree-sitter.node");
 });
 test("Windows release inputs are checksum pinned", async () => {
