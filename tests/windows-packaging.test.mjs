@@ -23,6 +23,7 @@ test("Windows builds use an isolated identity and profile", async () => {
   const packaging = await read("scripts/package-windows.mjs");
   assert.match(packaging, /reconstructedWindowsAppId/);
   assert.match(packaging, /uninstallDisplayName/);
+  assert.match(packaging, /publish: "never"/);
   assert.match(packaging, /Windows releases must be built on Windows x64/);
   const nodeRuntimeBuild = await read("scripts/build-tree-sitter-node.mjs");
   assert.match(nodeRuntimeBuild, /"node-gyp", "bin", "node-gyp\.js"/);
