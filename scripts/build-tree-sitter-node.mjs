@@ -12,14 +12,13 @@ function nodeRuntimeCacheRoot() {
 }
 
 function runNodeGyp(target) {
-  const command = process.platform === "win32"
-    ? path.join(repoRoot, "node_modules", ".bin", "node-gyp.cmd")
-    : path.join(repoRoot, "node_modules", ".bin", "node-gyp");
+  const command = process.execPath;
+  const nodeGypEntrypoint = path.join(repoRoot, "node_modules", "node-gyp", "bin", "node-gyp.js");
   const environment = { ...process.env };
   for (const key of ["npm_config_runtime", "npm_config_target", "npm_config_disturl", "npm_config_nodedir"]) delete environment[key];
   environment.npm_config_build_from_source = "true";
   return new Promise((resolve, reject) => {
-    const child = spawn(command, ["rebuild", "--directory", target, "--release"], {
+    const child = spawn(command, [nodeGypEntrypoint, "rebuild", "--directory", target, "--release"], {
       cwd: repoRoot,
       env: environment,
       stdio: ["ignore", "inherit", "inherit"],

@@ -18,6 +18,9 @@ test("Windows builds use an isolated identity and profile", async () => {
   assert.match(packaging, /reconstructedWindowsAppId/);
   assert.match(packaging, /uninstallDisplayName/);
   assert.match(packaging, /Windows releases must be built on Windows x64/);
+  const nodeRuntimeBuild = await read("scripts/build-tree-sitter-node.mjs");
+  assert.match(nodeRuntimeBuild, /"node-gyp", "bin", "node-gyp\.js"/);
+  assert.doesNotMatch(nodeRuntimeBuild, /node-gyp\.cmd/);
 });
 test("Windows CI produces, launches, and verifies NSIS and ZIP artifacts", async () => {
   const workflow = await read(".github/workflows/windows-release.yml");
