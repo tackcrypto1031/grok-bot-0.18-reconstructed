@@ -10,13 +10,25 @@ import {
   stagedAppDir
 } from "./config.mjs";
 import { packStagedAppWithIntegrity } from "./asar-integrity.mjs";
-import { resolveRuntimeApp } from "./runtime.mjs";
+import { resolveRuntimeResources } from "./runtime.mjs";
 
 export const reconstructedUpdaterGuard = [
   "// Reconstructed-build guard: do not consume official update or telemetry services.",
   "process.env.SAND_DISABLE_UPDATES ??= \"1\";",
   "process.env.SAND_DISABLE_SENTRY ??= \"1\";",
   "process.env.SAND_DISABLE_TELEMETRY ??= \"1\";",
+  "if (process.platform === \"win32\") {",
+  "  const { app: reconstructedElectronApp } = require(\"electron\");",
+  "  const reconstructedPath = require(\"node:path\");",
+  "  const reconstructedDataRoot = process.env.GROK_BOT_RECONSTRUCTED_DATA_DIR || reconstructedPath.join(reconstructedElectronApp.getPath(\"appData\"), \"Grok Bot 0.18 Reconstructed\");",
+  "  reconstructedElectronApp.setPath(\"userData\", reconstructedDataRoot);",
+  "  reconstructedElectronApp.setPath(\"sessionData\", reconstructedPath.join(reconstructedDataRoot, \"Session\"));",
+  "  reconstructedElectronApp.setPath(\"logs\", reconstructedPath.join(reconstructedDataRoot, \"logs\"));",
+  "  process.env.SAND_USER_DATA_DIR ??= reconstructedDataRoot;",
+  "  process.env.SAND_DATA_ROOT ??= reconstructedPath.join(reconstructedDataRoot, \"data\");",
+  "  process.env.SAND_RECONSTRUCTED_PROFILE ??= reconstructedDataRoot;",
+  "  process.env.GROK_BOT_RECONSTRUCTED ??= \"1\";",
+  "}",
   ""
 ].join("\n");
 
@@ -104,6 +116,10 @@ function enableReconstructedRuntimeSeams(source) {
     {
       from: "var isPrimaryInstance = !import_electron51.app.isPackaged || import_electron51.app.requestSingleInstanceLock();",
       to: "var isPrimaryInstance = process.env.GROK_BOT_RECONSTRUCTED_DEV === \"1\" || !import_electron51.app.isPackaged || import_electron51.app.requestSingleInstanceLock();"
+    },
+    {
+      from: "if (import_electron51.app.isPackaged && !isSandLabBuild2) {\n    import_electron51.app.setAsDefaultProtocolClient(SAND_DEEP_LINK_SCHEME);\n  }",
+      to: "if (import_electron51.app.isPackaged && !isSandLabBuild2 && process.env.GROK_BOT_RECONSTRUCTED !== \"1\") {\n    import_electron51.app.setAsDefaultProtocolClient(SAND_DEEP_LINK_SCHEME);\n  }"
     }
   ];
   let patched = source;
@@ -137,13 +153,21 @@ export async function buildAsar({
   archivePath = builtAsar,
   unpackedRoot = builtAsarUnpacked,
 } = {}) {
-  const runtimeApp = await resolveRuntimeApp();
-  const resources = path.join(runtimeApp, "Contents", "Resources");
+  const runtime = await resolveRuntimeResources();
+  const resources = runtime.resources;
   const runtimeUnpacked = path.join(resources, "app.asar.unpacked", "dist");
 
   await rm(buildRoot, { recursive: true, force: true });
   await mkdir(buildRoot, { recursive: true });
   await cp(sourceAppDir, stageRoot, { recursive: true, dereference: false, preserveTimestamps: true });
+
+  if (runtime.platform === "win32") {
+    const stagedPackagePath = path.join(stageRoot, "package.json");
+    const stagedPackage = JSON.parse(await readFile(stagedPackagePath, "utf8"));
+    stagedPackage.name = "grok-bot-018-reconstructed";
+    stagedPackage.productName = "Grok Bot 0.18 Reconstructed";
+    await writeFile(stagedPackagePath, `${JSON.stringify(stagedPackage, null, 2)}\n`);
+  }
 
   if (process.env.GROK_BOT_BUILD_DEV_APP === "1") {
     const stagedPackagePath = path.join(stageRoot, "package.json");
@@ -189,5 +213,5 @@ export async function buildAsar({
   } else {
     console.log(`Base ASAR staging ready: ${stageRoot}`);
   }
-  return { builtAsar: archivePath, builtAsarUnpacked: unpackedRoot, stagedAppDir: stageRoot, runtimeApp };
+  return { builtAsar: archivePath, builtAsarUnpacked: unpackedRoot, stagedAppDir: stageRoot, runtimeApp: runtime.root, runtimePlatform: runtime.platform };
 }

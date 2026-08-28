@@ -15,9 +15,13 @@ Windows x64 installer through Git LFS. The Windows artifact identity is:
 
 - Installer URL: `https://downloads.cursor.com/grokbot/stable/win32-x64/0.18.0/Grok_Bot_0.18.0_Setup.exe`
 - Installer SHA-256: `464079a15ef5fa8b61ccea8fffcc78f63cfcf6df65fb0ad5e725d8b95f7e437e`
+- Original Windows `app.asar` SHA-256: `38e85c0e5042c0257db7925e1e55709d6d155d90d92fe26ad654127d509766e0`
 - Preservation manifest: `research-archives/original/0.18.0/artifacts.json`
 
-The original application was Developer ID signed and notarized by Anysphere Incorporated. Reconstructed builds are intentionally given a different bundle ID and only ad-hoc signed; they do not retain or claim the upstream signature.
+The original application was signed by Anysphere Incorporated. Reconstructed
+builds intentionally use a different identity. macOS builds are ad-hoc signed;
+Windows builds are currently unsigned. Neither retains or claims the upstream
+signature.
 
 The shipped renderer contained optimized production bundles, not the authored
 frontend source or source maps. The readable `frontend/` tree is therefore a

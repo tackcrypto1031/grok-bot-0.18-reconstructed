@@ -6,9 +6,15 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(thisDir, "../..");
 export const sourceAppDir = path.join(repoRoot, "src", "app");
 export const cacheDir = path.join(repoRoot, ".cache");
+const configuredTargetPlatform = process.env.GROK_BOT_TARGET_PLATFORM?.trim();
+export const targetPlatform = configuredTargetPlatform || (new Set(["darwin", "win32"]).has(process.platform) ? process.platform : "darwin");
+if (!new Set(["darwin", "win32"]).has(targetPlatform)) throw new Error(`Unsupported target platform: ${targetPlatform}. Expected darwin or win32.`);
+export const targetArch = targetPlatform === "win32" ? "x64" : "arm64";
 export const cachedRuntimeApp = path.join(cacheDir, "runtime", "Grok Bot.app");
+export const cachedWindowsRuntime = path.join(cacheDir, "runtime", "windows-x64");
 export const cachedDmg = path.join(cacheDir, "downloads", "Grok_Bot_0.18.0.dmg");
 export const archivedDmg = path.join(repoRoot, "research-archives", "original", "0.18.0", "macos-arm64", "Grok_Bot_0.18.0.dmg");
+export const archivedWindowsInstaller = path.join(repoRoot, "research-archives", "original", "0.18.0", "windows-x64", "Grok_Bot_0.18.0_Setup.exe");
 export const buildDir = path.join(repoRoot, ".build");
 export const stagedAppDir = path.join(buildDir, "app");
 export const builtAsar = path.join(buildDir, "app.asar");
@@ -26,6 +32,10 @@ export const outputApp = path.join(
   outputDir,
   configuredOutputName ? path.basename(configuredOutputName) : "Grok Bot 0.18 Reconstructed.app"
 );
+export const windowsOutputDir = path.join(outputDir, "windows-x64");
+export const windowsPortableDir = path.join(windowsOutputDir, "Grok Bot 0.18 Reconstructed-win32-x64");
+export const windowsInstallerName = "Grok-Bot-0.18-Reconstructed-Setup-x64.exe";
+export const windowsZipName = "Grok-Bot-0.18-Reconstructed-Portable-x64.zip";
 export const fidelityOutputApp = path.join(outputDir, "Grok Bot 0.18 Fidelity.app");
 export const fidelityOutputAppForAsarHash = asarHash => {
   if (!/^[0-9a-f]{64}$/.test(asarHash)) throw new TypeError("A full lowercase ASAR SHA-256 is required");
@@ -41,8 +51,11 @@ export const devProfileDir = path.join(cacheDir, "dev-profile");
 export const upstreamVersion = "0.18.0";
 export const reconstructedBundleId = "com.anysphere.sand.reconstructed";
 export const reconstructedName = "Grok Bot 0.18 Reconstructed";
+export const reconstructedWindowsAppId = "com.tackcrypto.grokbot018.reconstructed";
 export const fidelityBundleId = "com.anysphere.sand.reconstructed.fidelity";
 export const fidelityName = "Grok Bot 0.18 Fidelity";
 export const dmgUrl = "https://downloads.cursor.com/grokbot/stable/darwin-arm64/0.18.0/Grok_Bot_0.18.0.dmg";
 export const dmgSha256 = "a253ccd8aab01e083f9812a0264354c5034d8ba7f0610bbb557e82ae77d203eb";
 export const upstreamAsarSha256 = "6665408168466f9cacc6087e917890c17f59d2e2e9c2404a5c4a59ad79c1de58";
+export const windowsInstallerSha256 = "464079a15ef5fa8b61ccea8fffcc78f63cfcf6df65fb0ad5e725d8b95f7e437e";
+export const windowsUpstreamAsarSha256 = "38e85c0e5042c0257db7925e1e55709d6d155d90d92fe26ad654127d509766e0";

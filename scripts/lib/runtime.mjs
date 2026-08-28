@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { access, cp, mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { extractAll } from "@electron/asar";
-import { cacheDir, cachedRuntimeApp, sourceAppDir, upstreamAsarSha256, upstreamVersion } from "./config.mjs";
+import { cacheDir, cachedRuntimeApp, cachedWindowsRuntime, sourceAppDir, targetPlatform, upstreamAsarSha256, upstreamVersion, windowsUpstreamAsarSha256 } from "./config.mjs";
 import { capture, run } from "./process.mjs";
 import { SYSTEM_TOOLS } from "./system-tools.mjs";
 
@@ -38,6 +38,42 @@ export async function resolveRuntimeApp() {
     return await validateRuntimeApp(cachedRuntimeApp);
   }
   throw new Error("Missing 0.18.0 runtime. Run `npm run bootstrap` first.");
+}
+
+export async function validateWindowsRuntime(runtimePath) {
+  const resources = path.join(runtimePath, "resources");
+  const archive = path.join(resources, "app.asar");
+  const unpacked = path.join(resources, "app.asar.unpacked");
+  const requiredFiles = [
+    path.join(runtimePath, "Grok Bot.exe"), archive,
+    path.join(unpacked, "dist", "deps", "@anysphere", "tree-chunk-napi", "tree-chunk-napi.win32-x64-msvc.node"),
+    path.join(unpacked, "dist", "deps", "better-sqlite3", "build", "Release", "better_sqlite3.node"),
+    path.join(unpacked, "dist", "deps", "cursor-proclist", "build", "Release", "cursor_proclist.node"),
+    path.join(unpacked, "dist", "deps", "tree-sitter", "build", "Release", "tree_sitter_runtime_binding.node"),
+    path.join(unpacked, "dist", "deps", "tree-sitter-bash", "prebuilds", "win32-x64", "tree-sitter-bash.node"),
+    path.join(unpacked, "dist", "deps", "whichlang-node-win32-x64-msvc", "whichlang-node.win32-x64-msvc.node"),
+    path.join(unpacked, "dist", "native", "sand-webauthn-signer.exe"),
+  ];
+  for (const required of requiredFiles) if (!(await exists(required)) || !(await stat(required)).isFile()) throw new Error(`Incomplete Windows Grok Bot runtime: missing ${required}`);
+  const actualSha256 = createHash("sha256").update(await readFile(archive)).digest("hex");
+  if (actualSha256 !== windowsUpstreamAsarSha256) throw new Error(`Windows app.asar checksum mismatch: expected ${windowsUpstreamAsarSha256}, got ${actualSha256}`);
+  return runtimePath;
+}
+
+export async function resolveWindowsRuntime() {
+  const configured = process.env.GROK_BOT_018_WINDOWS_RUNTIME?.trim();
+  if (configured) return validateWindowsRuntime(path.resolve(configured));
+  if (await exists(cachedWindowsRuntime)) return validateWindowsRuntime(cachedWindowsRuntime);
+  throw new Error("Missing Windows 0.18.0 runtime. Run `npm run bootstrap` on Windows first.");
+}
+
+export async function resolveRuntimeResources() {
+  if (targetPlatform === "win32") {
+    const root = await resolveWindowsRuntime();
+    return Object.freeze({ platform: "win32", root, resources: path.join(root, "resources") });
+  }
+  const root = await resolveRuntimeApp();
+  return Object.freeze({ platform: "darwin", root, resources: path.join(root, "Contents", "Resources") });
 }
 
 export async function cacheRuntimeFromApp(source) {
@@ -89,6 +125,11 @@ export async function hydrateSourcePayloadFromAsar(archive, {
 export async function hydrateSourcePayloadFromRuntime(runtimeApp, options = {}) {
   const archive = path.join(await validateRuntimeApp(runtimeApp), "Contents", "Resources", "app.asar");
   return hydrateSourcePayloadFromAsar(archive, options);
+}
+
+export async function hydrateSourcePayloadFromWindowsRuntime(runtimePath, options = {}) {
+  const archive = path.join(await validateWindowsRuntime(runtimePath), "resources", "app.asar");
+  return hydrateSourcePayloadFromAsar(archive, { expectedSha256: windowsUpstreamAsarSha256, ...options });
 }
 
 export async function copyTree(source, destination) {

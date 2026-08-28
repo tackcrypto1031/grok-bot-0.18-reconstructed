@@ -23,8 +23,13 @@ test("reconstructed fallback and clean packaging share one idempotent service gu
   const fallbackFixture = [
     "var isSandLabBuild2 = appPackageJson.sandLab === true;",
     "var isPrimaryInstance = !import_electron51.app.isPackaged || import_electron51.app.requestSingleInstanceLock();",
+    "if (import_electron51.app.isPackaged && !isSandLabBuild2) {",
+    "    import_electron51.app.setAsDefaultProtocolClient(SAND_DEEP_LINK_SCHEME);",
+    "  }",
   ].join("\n");
-  assert.ok(prepareReconstructedElectronMainArtifactFallback(fallbackFixture).startsWith(reconstructedUpdaterGuard));
+  const preparedFallback = prepareReconstructedElectronMainArtifactFallback(fallbackFixture);
+  assert.ok(preparedFallback.startsWith(reconstructedUpdaterGuard));
+  assert.match(preparedFallback, /process\.env\.GROK_BOT_RECONSTRUCTED !== "1"/);
 
   const cleanBuildSource = await readFile(path.join(root, "scripts", "clean-build.mjs"), "utf8");
   assert.match(cleanBuildSource, /fidelityRuntimeComposition, \{ reconstructedPackage: true \}/);

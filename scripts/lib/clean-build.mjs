@@ -16,6 +16,7 @@ import {
   builtAsarUnpacked,
   repoRoot,
   stagedAppDir,
+  targetPlatform,
 } from "./config.mjs";
 import { packStagedAppWithIntegrity, verifyStagedPackageIntegrity } from "./asar-integrity.mjs";
 import { officialMacReleaseAsarHash } from "./macos-shell-invariant.mjs";
@@ -69,7 +70,9 @@ export const runtimeComposition = Object.freeze([
   { runtime: "electron-runtime-resolution-closure", path: "dist/deps/node_modules", mode: "generated-runtime", provenance: "dist/deps/runtime-deps-manifest.json", reason: "Byte-exact copies of checksum-pinned sibling packages provide standard Node package resolution for Electron utility-process native dependencies." },
   { runtime: "node-runtime-dependencies", path: "dist/node-deps", mode: "generated-runtime", reason: "Native parser packages are rebuilt for the local-exec daemon Node ABI at clean-build time; binaries are never source-controlled." },
   { runtime: "native-runtime-tools", path: "dist/native", mode: "artifact-runtime", reason: "ABI-matched native executables are copied from the checksum-pinned 0.18 runtime." },
-  { runtime: "electron-shell", path: "Contents/Frameworks/Electron Framework.framework", mode: "artifact-runtime", reason: "The macOS package reuses the checksum-pinned, ABI-matched Electron 0.18 application shell and helper executables." },
+  targetPlatform === "win32"
+    ? { runtime: "electron-shell", path: "Grok Bot.exe", mode: "artifact-runtime", reason: "The Windows package uses an x64 Electron shell and checksum-pinned win32 native dependencies from the official 0.18 runtime." }
+    : { runtime: "electron-shell", path: "Contents/Frameworks/Electron Framework.framework", mode: "artifact-runtime", reason: "The macOS package reuses the checksum-pinned, ABI-matched Electron 0.18 application shell and helper executables." },
 ]);
 
 export const fidelityRuntimeComposition = Object.freeze(runtimeComposition.map(runtime => (

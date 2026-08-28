@@ -3,13 +3,14 @@
 ![Grok Bot Router settings with Codex selected and local usage totals](docs/assets/router-settings.png)
 
 This repository is an unofficial, source-oriented reconstruction of the
-publicly shipped Grok Bot 0.18.0 macOS app.
+publicly shipped Grok Bot 0.18.0 desktop app. It can produce reconstructed
+packages for macOS arm64 and Windows x64.
 
 The project began as an attempt to understand how the desktop app was put
 together. It now contains readable TypeScript implementations of its Electron,
 host, coordinator, local-execution, protocol, and renderer boundaries, plus a
 deterministic toolchain for turning those sources back into a working macOS
-application.
+application on both supported platforms.
 
 It also adds a few practical experiments:
 
@@ -41,7 +42,8 @@ The resulting app is a hybrid by design:
 - the polished shipped renderer remains the UI baseline;
 - a narrow deterministic transform adds the reconstructed Router settings UI;
 - original and patched renderer chunk hashes are recorded and verified; and
-- the finished app uses a separate bundle identifier and an ad-hoc signature.
+- the finished app uses a separate identity and data profile; macOS builds use
+  an ad-hoc signature and Windows builds are unsigned.
 
 The upstream app installed on the machine is never overwritten.
 
@@ -117,16 +119,20 @@ Remote mode remains the default.
 
 ## Requirements
 
-- macOS on Apple Silicon
+- Windows 10/11 x64, or macOS on Apple Silicon
 - Node.js 26.5.x
-- Xcode Command Line Tools
 - Git LFS
+- Visual Studio 2022 Build Tools with **Desktop development with C++**
+  (Windows only, required for Node native modules)
+- Xcode Command Line Tools (macOS only)
 - Docker Desktop (optional, only for the local sandbox)
 - local Claude Code or Codex authentication for those router choices
 
 ## Quick start
 
-```sh
+### Windows x64
+
+```powershell
 git clone <your-repository-url>
 cd grok-bot-0.18-reconstructed
 git lfs install
@@ -134,15 +140,37 @@ git lfs pull
 npm ci
 npm run bootstrap
 npm run check
-npm run package
-open "dist/Grok Bot 0.18 Reconstructed.app"
+npm run package:windows
+npm run smoke:windows
+npm run verify:windows
 ```
 
-`npm run bootstrap` first uses the Git LFS preservation copy of the pinned
-0.18.0 DMG. If that archive is absent, it falls back to the original public URL;
-`GROK_BOT_018_APP` can also point to an existing application copy. Bootstrap
-verifies both the DMG and `app.asar`, caches the matching Electron runtime, and
-hydrates the ignored `src/app/dist` build input.
+Windows output is written to `dist/windows-x64/`:
+
+- `Grok-Bot-0.18-Reconstructed-Setup-x64.exe` — NSIS installer
+- `Grok-Bot-0.18-Reconstructed-Portable-x64.zip` — portable application
+- `SHA256SUMS` — release checksums
+
+The reconstructed build has its own product/app identity and stores Electron
+settings, session data, caches, databases, and logs below an independent
+`%APPDATA%\\Grok Bot 0.18 Reconstructed` profile. It does not overwrite the
+installed Grok Bot 0.24 profile. Codex and Claude authentication can still use
+their respective command-line clients' existing logins.
+
+Windows packages currently have no Authenticode certificate, so Windows
+SmartScreen may display an unknown-publisher warning. Verify `SHA256SUMS`
+before running the installer.
+
+### macOS arm64
+
+Run the same bootstrap/check flow followed by `npm run package:macos`, then
+open `dist/Grok Bot 0.18 Reconstructed.app`.
+
+`npm run bootstrap` selects the native platform, verifies the corresponding
+Git LFS installer and `app.asar`, caches the ABI-matched Electron/native
+runtime, and hydrates the ignored `src/app/dist` build input. On macOS only,
+an absent archived DMG can fall back to the original public URL and
+`GROK_BOT_018_APP` can point to an existing application copy.
 
 `npm run package` compiles the reconstructed runtimes, applies the narrow
 renderer/settings transform, creates the app bundle, assigns the reconstructed
@@ -203,8 +231,10 @@ npm test                  # focused regression tests
 npm run typecheck         # renderer TypeScript
 npm run source:typecheck  # runtime TypeScript
 npm run frontend:build    # build the readable renderer reconstruction
-npm run package           # build, sign, and verify the macOS app
-npm run verify            # verify an existing packaged app
+npm run package           # package the current Windows/macOS platform
+npm run package:windows   # Windows x64 NSIS + portable ZIP
+npm run package:macos     # macOS arm64 app
+npm run verify            # verify the current platform package
 npm run smoke             # bounded native smoke check
 npm run publication:check # prove a fresh-history export is lossless
 ```
@@ -216,7 +246,8 @@ Generated directories including `.cache`, `.build`, `dist`, `src/app/dist`,
 
 The app launches and the core reconstructed flows are usable, including routed
 inference, connected plugins, and the local Docker sandbox. This is still an
-experimental reconstruction: it targets one pinned macOS/arm64 release, depends
+experimental reconstruction: it targets pinned 0.18.0 macOS/arm64 and
+Windows/x64 releases, depends
 on external provider sessions, and does not promise compatibility with future
 Grok Bot versions.
 

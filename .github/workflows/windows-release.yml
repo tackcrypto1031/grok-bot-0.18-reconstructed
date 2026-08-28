@@ -1,0 +1,40 @@
+name: Windows x64 package
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26.5.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify and extract the pinned Windows runtime
+        run: npm run bootstrap
+      - name: Build NSIS and portable ZIP
+        run: npm run package:windows
+      - name: Launch the isolated Windows application
+        run: npm run smoke:windows
+      - name: Verify Windows release artifacts
+        run: npm run verify:windows
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: grok-bot-0.18-reconstructed-windows-x64
+          path: |
+            dist/windows-x64/Grok-Bot-0.18-Reconstructed-Setup-x64.exe
+            dist/windows-x64/Grok-Bot-0.18-Reconstructed-Portable-x64.zip
+            dist/windows-x64/SHA256SUMS
+          if-no-files-found: error
