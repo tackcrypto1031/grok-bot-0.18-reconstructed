@@ -9,6 +9,10 @@ import { run } from "./process.mjs";
 
 const unpackedPrefixes = ["dist/deps/", "dist/native/", "dist/node-deps/"];
 
+export function normalizeArchivePath(value) {
+  return value.replace(/^[/\\]+/, "").replaceAll("\\", "/");
+}
+
 async function walkFiles(root, current = root) {
   const found = [];
   for (const entry of await readdir(current, { withFileTypes: true })) {
@@ -49,9 +53,11 @@ function snapshotDiff(before, after) {
 async function archiveFileEntries(archivePath) {
   const entries = new Map();
   for (const raw of listPackage(archivePath)) {
-    const relative = raw.replace(/^\//, "");
+    const relative = normalizeArchivePath(raw);
     try {
-      const entry = statFile(archivePath, relative);
+      // @electron/asar returns host-native separators from listPackage(). Keep
+      // that spelling for statFile(), but compare using portable POSIX paths.
+      const entry = statFile(archivePath, raw);
       if (typeof entry.size === "number") entries.set(relative, entry);
     } catch {
       // listPackage includes directories; statFile is the file boundary.

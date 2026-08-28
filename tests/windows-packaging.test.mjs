@@ -3,9 +3,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { normalizeArchivePath } from "../scripts/lib/asar-integrity.mjs";
 import { reconstructedUpdaterGuard } from "../scripts/lib/build-asar.mjs";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = relative => readFile(path.join(repoRoot, relative), "utf8");
+test("ASAR integrity paths normalize Windows separators", () => {
+  assert.equal(normalizeArchivePath("\\node_modules\\ws\\index.js"), "node_modules/ws/index.js");
+  assert.equal(normalizeArchivePath("/dist/native/tree-sitter.node"), "dist/native/tree-sitter.node");
+});
 test("Windows release inputs are checksum pinned", async () => {
   const config = await read("scripts/lib/config.mjs");
   assert.match(config, /464079a15ef5fa8b61ccea8fffcc78f63cfcf6df65fb0ad5e725d8b95f7e437e/);
