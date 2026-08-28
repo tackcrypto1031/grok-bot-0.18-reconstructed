@@ -23,6 +23,8 @@ test("Windows builds use an isolated identity and profile", async () => {
   assert.doesNotMatch(nodeRuntimeBuild, /node-gyp\.cmd/);
   assert.match(nodeRuntimeBuild, /enable_lto=false/);
   assert.match(nodeRuntimeBuild, /enable_thin_lto=false/);
+  assert.match(nodeRuntimeBuild, /npm_config_enable_lto = "false"/);
+  assert.match(nodeRuntimeBuild, /npm_config_enable_thin_lto = "false"/);
 });
 test("Windows CI produces, launches, and verifies NSIS and ZIP artifacts", async () => {
   const workflow = await read(".github/workflows/windows-release.yml");
