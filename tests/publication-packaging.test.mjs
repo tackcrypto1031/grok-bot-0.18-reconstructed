@@ -31,7 +31,7 @@ test("publication ignore rules retain reconstructed frontend source", async () =
 
 test("repository checks hydrate the pinned Git LFS archives", async () => {
   const workflow = await readFile(path.join(repoRoot, ".github", "workflows", "check.yml"), "utf8");
-  assert.match(workflow, /uses: actions\/checkout@v4\n\s+with:\n\s+lfs: true/);
+  assert.match(workflow, /uses: actions\/checkout@v4\r?\n\s+with:\r?\n\s+lfs: true/);
 });
 
 test("default packaging keeps the polished checksum-pinned renderer", async () => {
