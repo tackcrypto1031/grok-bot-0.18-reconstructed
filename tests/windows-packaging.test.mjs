@@ -37,3 +37,14 @@ test("Windows CI produces, launches, and verifies NSIS and ZIP artifacts", async
   const workflow = await read(".github/workflows/windows-release.yml");
   for (const marker of [/runs-on: windows-latest/, /npm run bootstrap/, /npm run package:windows/, /npm run smoke:windows/, /npm run verify:windows/, /Grok-Bot-0\.18-Reconstructed-Setup-x64\.exe/, /Grok-Bot-0\.18-Reconstructed-Portable-x64\.zip/]) assert.match(workflow, marker);
 });
+
+test("Windows verification and smoke checks are separator-safe and fail closed", async () => {
+  const provider = await read("source/electron-main/production-binding-providers.ts");
+  const verifier = await read("scripts/verify-windows.mjs");
+  const smoke = await read("scripts/smoke-windows.mjs");
+  assert.match(provider, /platform === "darwin" \? ports\?\.app\?\.isInApplicationsFolder : \(\) => false/);
+  assert.match(provider, /platform === "darwin" \? ports\?\.app\?\.moveToApplicationsFolder : \(\) => false/);
+  assert.match(verifier, /listPackage\(asarPath\)\.map\(normalizeArchivePath\)/);
+  assert.match(verifier, /archiveLookupPath\("dist\/electron-main\/main\.cjs"\)/);
+  assert.match(smoke, /fatal composition failure\/i\.test\(capturedOutput\)/);
+});
