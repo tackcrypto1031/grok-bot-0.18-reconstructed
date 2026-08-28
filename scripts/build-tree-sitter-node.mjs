@@ -17,6 +17,15 @@ function runNodeGyp(target) {
   const environment = { ...process.env };
   for (const key of ["npm_config_runtime", "npm_config_target", "npm_config_disturl", "npm_config_nodedir"]) delete environment[key];
   environment.npm_config_build_from_source = "true";
+  // Official Node 26 Windows builds may expose their own clang-cl thin-LTO
+  // variables through config.gypi. Native addons are built with MSVC here;
+  // forwarding those flags produces an invalid /opt:lldltojobs linker option.
+  environment.GYP_DEFINES = [
+    environment.GYP_DEFINES?.trim(),
+    "enable_lto=false",
+    "enable_thin_lto=false",
+    "lto_jobs=",
+  ].filter(Boolean).join(" ");
   return new Promise((resolve, reject) => {
     const child = spawn(command, [nodeGypEntrypoint, "rebuild", "--directory", target, "--release"], {
       cwd: repoRoot,
